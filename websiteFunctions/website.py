@@ -3910,8 +3910,6 @@ class WebsiteManager:
             json_data = json.dumps(data_ret)
             return HttpResponse(json_data)
 
-
-
         except BaseException as msg:
             data_ret = {'createAliasStatus': 0, 'error_message': str(msg), "existsStatus": 0}
             json_data = json.dumps(data_ret)
@@ -4609,6 +4607,64 @@ StrictHostKeyChecking no
             json_data = json.dumps(data_ret)
             return HttpResponse(json_data)
 
+    def createWebsiteAliasAPI(self, data=None):
+        try:
+
+            adminUser = data['adminUser']
+            adminPass = data['adminPass']
+            adminEmail = data['ownerEmail']
+            websiteOwner = data['websiteOwner']
+            ownerPassword = data['ownerPassword']
+
+            # data['ssl'] = 1
+            # data['masterDomain'] = data['masterDomain']
+            # aliasDomain = data['aliasDomain']
+            # ssl = data['ssl']
+
+            try :
+                data['ssl'] = data['ssl']
+            except:
+                data['ssl'] = 1
+
+            try:
+                websitesLimit = data['websitesLimit']
+            except:
+                websitesLimit = 1
+
+            try:
+                apiACL = data['acl']
+            except:
+                apiACL = 'user'
+
+            admin = Administrator.objects.get(userName=adminUser)
+
+            if hashPassword.check_password(admin.password, adminPass):
+
+                if adminEmail is None:
+                    data['adminEmail'] = "example@example.org"
+
+                try:
+                    acl = ACL.objects.get(name=apiACL)
+                    websiteOwn = Administrator(userName=websiteOwner,
+                                               password=hashPassword.hash_password(ownerPassword),
+                                               email=adminEmail, type=3, owner=admin.pk,
+                                               initWebsitesLimit=websitesLimit, acl=acl, api=1)
+                    websiteOwn.save()
+                except BaseException:
+                    pass
+
+            else:
+                data_ret = {"existsStatus": 0, 'createWebSiteAliasStatus': 0, 'error_message': "Could not authorize access to API"}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+
+            return self.submitAliasCreation(admin.pk, data)
+
+        except BaseException as msg:
+            data_ret = {'createWebSiteAliasStatus': 0, 'error_message': str(msg), "existsStatus": 0}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+                    
     def searchWebsitesJson(self, currentlACL, userID, searchTerm):
 
         websites = ACLManager.searchWebsiteObjects(currentlACL, userID, searchTerm)
